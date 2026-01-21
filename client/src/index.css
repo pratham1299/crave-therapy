@@ -1,0 +1,161 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Graph paper background */
+.bg-paper {
+  background-color: #F5F5DC;
+  background-image:
+    linear-gradient(#D4E5E5 1px, transparent 1px),
+    linear-gradient(90deg, #D4E5E5 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+/* Typewriter text effect */
+.typewriter {
+  font-family: 'Special Elite', 'Courier New', Courier, monospace;
+}
+
+.handwritten {
+  font-family: 'Caveat', cursive;
+}
+
+/* Prescription card styling */
+.prescription-card {
+  @apply bg-white/90 backdrop-blur-sm rounded-lg border-2 border-therapy-teal p-4 shadow-lg;
+  @apply transform transition-all duration-300 hover:scale-105 hover:shadow-xl;
+}
+
+/* Stamp effect */
+.stamp {
+  @apply font-typewriter text-red-500 border-4 border-red-500 rounded-lg px-4 py-2;
+  @apply transform rotate-[-5deg] opacity-80;
+}
+
+/* Animated underline */
+.underline-animated {
+  position: relative;
+}
+
+.underline-animated::after {
+  content: '';
+  position: absolute;
+  width: 0;
+  height: 2px;
+  bottom: -2px;
+  left: 0;
+  background-color: currentColor;
+  transition: width 0.3s ease;
+}
+
+.underline-animated:hover::after {
+  width: 100%;
+}
+
+/* Pill button styling */
+.pill-button {
+  @apply px-6 py-3 rounded-full font-typewriter text-sm uppercase tracking-wider;
+  @apply transform transition-all duration-200;
+  @apply hover:scale-105 active:scale-95;
+}
+
+/* Mood card styling */
+.mood-card {
+  @apply relative overflow-hidden rounded-2xl p-6 cursor-pointer;
+  @apply transform transition-all duration-300;
+  @apply hover:scale-105 hover:-rotate-1;
+  @apply shadow-lg hover:shadow-2xl;
+}
+
+/* Cart item animation */
+.cart-item {
+  @apply animate-slide-up;
+}
+
+/* Coupon styling */
+.coupon-card {
+  @apply relative bg-white rounded-lg overflow-hidden;
+  @apply border-2 border-dashed border-therapy-teal;
+  @apply transform transition-all duration-300 hover:scale-[1.02];
+}
+
+.coupon-card::before {
+  content: '';
+  @apply absolute left-0 top-1/2 -translate-y-1/2 -translate-x-1/2;
+  @apply w-6 h-6 bg-paper rounded-full;
+}
+
+.coupon-card::after {
+  content: '';
+  @apply absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2;
+  @apply w-6 h-6 bg-paper rounded-full;
+}
+
+/* Music visualizer bars */
+.music-bar {
+  @apply w-1 bg-therapy-teal rounded-full;
+  animation: musicPulse 0.5s ease-in-out infinite alternate;
+}
+
+.music-bar:nth-child(2) {
+  animation-delay: 0.1s;
+}
+
+.music-bar:nth-child(3) {
+  animation-delay: 0.2s;
+}
+
+.music-bar:nth-child(4) {
+  animation-delay: 0.3s;
+}
+
+@keyframes musicPulse {
+  from {
+    height: 8px;
+  }
+
+  to {
+    height: 24px;
+  }
+}
+
+/* Loading spinner */
+.spinner {
+  @apply w-8 h-8 border-4 border-therapy-light border-t-therapy-teal rounded-full;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Modal backdrop */
+.modal-backdrop {
+  @apply fixed inset-0 bg-black/50 backdrop-blur-sm z-50;
+  @apply flex items-center justify-center p-4;
+}
+
+/* Toast notification */
+.toast {
+  @apply fixed bottom-4 right-4 bg-therapy-dark text-white px-6 py-3 rounded-lg shadow-xl;
+  @apply font-typewriter animate-slide-up;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-therapy-light;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-therapy-teal rounded-full;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-therapy-dark;
+}
