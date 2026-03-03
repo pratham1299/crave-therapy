@@ -24,15 +24,18 @@ export default function Navbar() {
         <>
             <nav className="sticky top-0 z-40 bg-therapy-teal/95 backdrop-blur-sm shadow-md">
                 <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
-                    {/* Logo - different destination for staff */}
-                    <Link to={isStaff ? '/counter' : '/'} className="flex items-center gap-2 group">
+                    {/* Logo - different destination based on role */}
+                    <Link
+                        to={isAdmin ? '/admin' : (isStaff ? '/counter' : '/')}
+                        className="flex items-center gap-2 group"
+                    >
                         <span className="text-3xl animate-pulse-slow">🏥</span>
                         <div>
                             <h1 className="text-white font-typewriter text-xl font-bold tracking-tight">
                                 Crave Therapy
                             </h1>
                             <p className="text-therapy-light text-xs">
-                                {isStaff ? 'Staff Portal' : 'Food for Moods'}
+                                {isAdmin ? 'Admin Panel' : (isStaff ? 'Staff Portal' : 'Food for Moods')}
                             </p>
                         </div>
                     </Link>
@@ -64,6 +67,15 @@ export default function Navbar() {
                                 <span className="text-white text-sm hidden sm:block">
                                     👋 {user.name}
                                 </span>
+                                {/* My Orders - only for regular users */}
+                                {!isStaff && (
+                                    <Link
+                                        to="/my-orders"
+                                        className="px-3 py-1 bg-white/20 text-white rounded-full text-sm hover:bg-white/30 transition-colors"
+                                    >
+                                        📜 My Orders
+                                    </Link>
+                                )}
                                 {isStaff && (
                                     <Link
                                         to="/counter"

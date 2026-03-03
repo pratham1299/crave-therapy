@@ -144,6 +144,46 @@ const coupons = [
         value: 40,
         isExclusive: true,
         icon: '🏥'
+    },
+    // Counter-only coupons (for staff to apply)
+    {
+        name: 'Staff Discount',
+        code: 'STAFF10',
+        description: 'Staff special - 10% off for valued customers',
+        type: 'percent',
+        value: 10,
+        maxDiscount: 100,
+        isCounterOnly: true,
+        icon: '👨‍💼'
+    },
+    {
+        name: 'Manager Special',
+        code: 'MANAGER50',
+        description: 'Manager approved - ₹50 instant discount',
+        type: 'fixed',
+        value: 50,
+        minOrder: 200,
+        isCounterOnly: true,
+        icon: '👔'
+    },
+    {
+        name: 'Loyalty Reward',
+        code: 'LOYAL15',
+        description: 'Regular customer reward - 15% off',
+        type: 'percent',
+        value: 15,
+        maxDiscount: 150,
+        isCounterOnly: true,
+        icon: '⭐'
+    },
+    {
+        name: 'Apology Discount',
+        code: 'SORRY100',
+        description: 'Apologetic gesture - ₹100 off for service issues',
+        type: 'fixed',
+        value: 100,
+        isCounterOnly: true,
+        icon: '🙏'
     }
 ];
 

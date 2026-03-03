@@ -61,6 +61,10 @@ const couponSchema = new mongoose.Schema({
         type: Boolean,
         default: true
     },
+    isCounterOnly: {
+        type: Boolean,
+        default: false
+    },
     createdAt: {
         type: Date,
         default: Date.now

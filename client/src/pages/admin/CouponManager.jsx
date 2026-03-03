@@ -19,6 +19,7 @@ export default function CouponManager() {
         minOrder: 0,
         maxDiscount: '',
         isExclusive: false,
+        isCounterOnly: false,
         icon: '💊',
         isActive: true
     });
@@ -75,6 +76,7 @@ export default function CouponManager() {
             minOrder: coupon.minOrder,
             maxDiscount: coupon.maxDiscount || '',
             isExclusive: coupon.isExclusive,
+            isCounterOnly: coupon.isCounterOnly || false,
             icon: coupon.icon,
             isActive: coupon.isActive
         });
@@ -103,6 +105,7 @@ export default function CouponManager() {
             minOrder: 0,
             maxDiscount: '',
             isExclusive: false,
+            isCounterOnly: false,
             icon: '💊',
             isActive: true
         });
@@ -217,10 +220,21 @@ export default function CouponManager() {
                                 <input
                                     type="checkbox"
                                     checked={formData.isExclusive}
-                                    onChange={(e) => setFormData({ ...formData, isExclusive: e.target.checked })}
+                                    onChange={(e) => setFormData({ ...formData, isExclusive: e.target.checked, isCounterOnly: false })}
                                     className="w-4 h-4"
+                                    disabled={formData.isCounterOnly}
                                 />
                                 <span className="font-typewriter text-sm">🔒 Exclusive (logged-in only)</span>
+                            </label>
+                            <label className="flex items-center gap-2 cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    checked={formData.isCounterOnly}
+                                    onChange={(e) => setFormData({ ...formData, isCounterOnly: e.target.checked, isExclusive: false })}
+                                    className="w-4 h-4"
+                                    disabled={formData.isExclusive}
+                                />
+                                <span className="font-typewriter text-sm">🧾 Counter Only (staff use)</span>
                             </label>
                             <label className="flex items-center gap-2 cursor-pointer">
                                 <input
@@ -254,7 +268,7 @@ export default function CouponManager() {
                         {coupons.map((coupon) => (
                             <div
                                 key={coupon._id}
-                                className={`coupon-card p-4 ${coupon.isExclusive ? 'border-yellow-400 bg-yellow-50' : ''}`}
+                                className={`coupon-card p-4 ${coupon.isExclusive ? 'border-yellow-400 bg-yellow-50' : ''} ${coupon.isCounterOnly ? 'border-purple-400 bg-purple-50' : ''}`}
                             >
                                 <div className="flex items-start justify-between mb-2">
                                     <div className="flex items-center gap-2">
@@ -264,9 +278,12 @@ export default function CouponManager() {
                                             <code className="bg-therapy-light px-2 py-0.5 rounded text-sm">{coupon.code}</code>
                                         </div>
                                     </div>
-                                    <div className="flex gap-2">
+                                    <div className="flex gap-2 flex-wrap">
                                         {coupon.isExclusive && (
-                                            <span className="text-xs bg-yellow-400 text-gray-900 px-2 py-0.5 rounded-full">VIP</span>
+                                            <span className="text-xs bg-yellow-400 text-gray-900 px-2 py-0.5 rounded-full">🔒 VIP</span>
+                                        )}
+                                        {coupon.isCounterOnly && (
+                                            <span className="text-xs bg-purple-500 text-white px-2 py-0.5 rounded-full">🧾 Counter</span>
                                         )}
                                         {!coupon.isActive && (
                                             <span className="text-xs bg-red-100 text-red-600 px-2 py-0.5 rounded-full">Inactive</span>

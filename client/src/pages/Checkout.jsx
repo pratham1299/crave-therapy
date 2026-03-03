@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../utils/api';
 import { useCart } from '../context/CartContext';
@@ -9,6 +9,7 @@ export default function Checkout() {
     const { user } = useAuth();
     const navigate = useNavigate();
 
+    const [coupons, setCoupons] = useState([]);
     const [couponCode, setCouponCode] = useState('');
     const [couponApplied, setCouponApplied] = useState(null);
     const [discount, setDiscount] = useState(0);
@@ -21,11 +22,32 @@ export default function Checkout() {
 
     const total = subtotal - discount;
 
-    const applyCoupon = async () => {
+    // Fetch available coupons
+    useEffect(() => {
+        fetchCoupons();
+    }, [user]);
+
+    const fetchCoupons = async () => {
+        try {
+            const { data } = await api.get('/coupons');
+            // Filter: if logged in show all active, if guest show only non-exclusive
+            const availableCoupons = data.data.filter(coupon => {
+                if (!coupon.isActive) return false;
+                if (coupon.isExclusive && !user) return false;
+                return true;
+            });
+            setCoupons(availableCoupons);
+        } catch (err) {
+            console.error('Failed to fetch coupons:', err);
+        }
+    };
+
+    const applyCouponByCode = async (code) => {
         setCouponError('');
+        setCouponCode(code);
         try {
             const { data } = await api.post('/coupons/validate', {
-                code: couponCode,
+                code: code,
                 subtotal
             });
             setCouponApplied(data.data.coupon);
@@ -37,10 +59,15 @@ export default function Checkout() {
         }
     };
 
+    const applyCoupon = async () => {
+        await applyCouponByCode(couponCode);
+    };
+
     const removeCoupon = () => {
         setCouponApplied(null);
         setDiscount(0);
         setCouponCode('');
+        setCouponError('');
     };
 
     const handleSubmit = async (e) => {
@@ -145,48 +172,103 @@ export default function Checkout() {
                             </div>
                         ))}
 
-                        {/* Coupon Section */}
+                        {/* Available Coupons Section */}
                         <div className="prescription-card">
                             <h3 className="font-typewriter font-bold mb-3 flex items-center gap-2">
-                                <span>🎫</span> Apply Prescription Code
+                                <span>🎫</span> Available Prescription Codes
+                                {!user && <span className="text-xs text-orange-500 font-normal">(Login for more offers!)</span>}
                             </h3>
 
-                            {couponApplied ? (
-                                <div className="flex items-center justify-between bg-green-100 p-3 rounded-lg">
-                                    <div>
-                                        <p className="font-typewriter font-bold text-green-800">
-                                            {couponApplied.icon} {couponApplied.name} applied!
-                                        </p>
-                                        <p className="text-sm text-green-600">You save ₹{discount}</p>
-                                    </div>
-                                    <button
-                                        onClick={removeCoupon}
-                                        className="text-red-500 hover:underline text-sm"
-                                    >
-                                        Remove
-                                    </button>
-                                </div>
+                            {coupons.length === 0 ? (
+                                <p className="text-gray-500 text-sm font-typewriter">No coupons available</p>
                             ) : (
-                                <div className="flex gap-2">
-                                    <input
-                                        type="text"
-                                        value={couponCode}
-                                        onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
-                                        placeholder="Enter code"
-                                        className="flex-1 px-4 py-2 border-2 border-therapy-teal rounded-lg font-typewriter uppercase"
-                                    />
-                                    <button
-                                        onClick={applyCoupon}
-                                        disabled={!couponCode}
-                                        className="pill-button bg-therapy-teal text-white disabled:opacity-50"
-                                    >
-                                        Apply
-                                    </button>
+                                <div className="grid sm:grid-cols-2 gap-3 mb-4">
+                                    {coupons.map((coupon) => (
+                                        <div
+                                            key={coupon._id}
+                                            className={`relative p-3 rounded-lg border-2 border-dashed transition-all ${couponApplied?._id === coupon._id
+                                                    ? 'border-green-500 bg-green-50'
+                                                    : 'border-therapy-teal hover:bg-therapy-light'
+                                                }`}
+                                        >
+                                            <div className="flex items-start justify-between gap-2">
+                                                <div className="flex-1">
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="text-xl">{coupon.icon || '🎫'}</span>
+                                                        <span className="font-typewriter font-bold text-sm">{coupon.name}</span>
+                                                    </div>
+                                                    <p className="text-xs text-gray-600 mt-1">{coupon.description}</p>
+                                                    <code className="inline-block mt-2 px-2 py-0.5 bg-gray-100 rounded text-xs font-bold">
+                                                        {coupon.code}
+                                                    </code>
+                                                    {coupon.isExclusive && (
+                                                        <span className="ml-2 text-xs text-purple-600">👑 Members Only</span>
+                                                    )}
+                                                </div>
+                                                <div>
+                                                    {couponApplied?._id === coupon._id ? (
+                                                        <button
+                                                            onClick={removeCoupon}
+                                                            className="px-2 py-1 bg-red-100 text-red-600 rounded text-xs font-bold hover:bg-red-200"
+                                                        >
+                                                            ✕ Remove
+                                                        </button>
+                                                    ) : (
+                                                        <button
+                                                            onClick={() => applyCouponByCode(coupon.code)}
+                                                            disabled={couponApplied !== null}
+                                                            className="px-3 py-1 bg-therapy-teal text-white rounded text-xs font-bold hover:bg-therapy-dark disabled:opacity-50 disabled:cursor-not-allowed"
+                                                        >
+                                                            Apply
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
                                 </div>
                             )}
-                            {couponError && (
-                                <p className="text-red-500 text-sm mt-2 font-typewriter">{couponError}</p>
-                            )}
+
+                            {/* Manual Coupon Entry */}
+                            <div className="pt-3 border-t border-gray-200">
+                                <p className="text-xs text-gray-500 mb-2 font-typewriter">Or enter a code manually:</p>
+                                {couponApplied ? (
+                                    <div className="flex items-center justify-between bg-green-100 p-3 rounded-lg">
+                                        <div>
+                                            <p className="font-typewriter font-bold text-green-800">
+                                                {couponApplied.icon} {couponApplied.name} applied!
+                                            </p>
+                                            <p className="text-sm text-green-600">You save ₹{discount}</p>
+                                        </div>
+                                        <button
+                                            onClick={removeCoupon}
+                                            className="text-red-500 hover:underline text-sm"
+                                        >
+                                            Remove
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <div className="flex gap-2">
+                                        <input
+                                            type="text"
+                                            value={couponCode}
+                                            onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                                            placeholder="Enter code"
+                                            className="flex-1 px-4 py-2 border-2 border-therapy-teal rounded-lg font-typewriter uppercase"
+                                        />
+                                        <button
+                                            onClick={applyCoupon}
+                                            disabled={!couponCode}
+                                            className="pill-button bg-therapy-teal text-white disabled:opacity-50"
+                                        >
+                                            Apply
+                                        </button>
+                                    </div>
+                                )}
+                                {couponError && (
+                                    <p className="text-red-500 text-sm mt-2 font-typewriter">{couponError}</p>
+                                )}
+                            </div>
                         </div>
                     </div>
 

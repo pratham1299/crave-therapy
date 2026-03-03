@@ -12,8 +12,10 @@ export default function CounterPortal() {
     const [search, setSearch] = useState('');
     const [selectedOrder, setSelectedOrder] = useState(null);
     const [menuItems, setMenuItems] = useState([]);
+    const [counterCoupons, setCounterCoupons] = useState([]);
     const [showAddItem, setShowAddItem] = useState(false);
-    const [activeTab, setActiveTab] = useState('pending'); // 'pending' or 'completed'
+    const [showCouponModal, setShowCouponModal] = useState(false);
+    const [activeTab, setActiveTab] = useState('pending');
 
     useEffect(() => {
         if (!user || !isStaff) {
@@ -29,12 +31,14 @@ export default function CounterPortal() {
 
     const fetchData = async () => {
         try {
-            const [statsRes, menuRes] = await Promise.all([
+            const [statsRes, menuRes, couponsRes] = await Promise.all([
                 api.get('/counter/stats'),
-                api.get('/counter/menu')
+                api.get('/counter/menu'),
+                api.get('/counter/coupons')
             ]);
             setStats(statsRes.data.data);
             setMenuItems(menuRes.data.data);
+            setCounterCoupons(couponsRes.data.data);
             fetchOrders();
         } catch (error) {
             console.error('Failed to fetch:', error);
@@ -46,8 +50,6 @@ export default function CounterPortal() {
         try {
             const showPaid = activeTab === 'completed' ? 'true' : 'false';
             const { data } = await api.get(`/counter/orders?showPaid=${showPaid}&search=${searchQuery}`);
-
-            // For completed tab, filter to show only paid orders
             if (activeTab === 'completed') {
                 setOrders(data.data.filter(o => o.isPaid));
             } else {
@@ -60,14 +62,8 @@ export default function CounterPortal() {
         }
     };
 
-    const handleSearch = () => {
-        fetchOrders(search);
-    };
-
-    const clearSearch = () => {
-        setSearch('');
-        fetchOrders('');
-    };
+    const handleSearch = () => fetchOrders(search);
+    const clearSearch = () => { setSearch(''); fetchOrders(''); };
 
     const selectOrder = async (orderId) => {
         try {
@@ -120,6 +116,32 @@ export default function CounterPortal() {
         }
     };
 
+    const applyCoupon = async (couponCode) => {
+        if (!selectedOrder) return;
+        try {
+            const { data } = await api.post(`/counter/orders/${selectedOrder._id}/apply-coupon`, {
+                couponCode
+            });
+            setSelectedOrder(data.data);
+            setShowCouponModal(false);
+            fetchData();
+            alert(data.message);
+        } catch (error) {
+            alert(error.response?.data?.message || 'Failed to apply coupon');
+        }
+    };
+
+    const removeCoupon = async () => {
+        if (!selectedOrder) return;
+        try {
+            const { data } = await api.delete(`/counter/orders/${selectedOrder._id}/remove-coupon`);
+            setSelectedOrder(data.data);
+            fetchData();
+        } catch (error) {
+            alert(error.response?.data?.message || 'Failed to remove coupon');
+        }
+    };
+
     const markAsPaid = async () => {
         if (!selectedOrder) return;
         if (!confirm(`Mark order #${selectedOrder._id.slice(-6)} as PAID for ₹${selectedOrder.total}?`)) return;
@@ -151,14 +173,10 @@ export default function CounterPortal() {
             {/* Header */}
             <div className="bg-therapy-dark text-white p-4">
                 <div className="max-w-7xl mx-auto flex items-center justify-between flex-wrap gap-4">
-                    <div className="flex items-center gap-4">
-                        <div>
-                            <h1 className="text-xl font-typewriter font-bold">🧾 Counter Portal</h1>
-                            <p className="text-sm opacity-80">Staff: {user?.name}</p>
-                        </div>
+                    <div>
+                        <h1 className="text-xl font-typewriter font-bold">🧾 Counter Portal</h1>
+                        <p className="text-sm opacity-80">Staff: {user?.name}</p>
                     </div>
-
-                    {/* Stats */}
                     {stats && (
                         <div className="flex gap-6 text-center">
                             <div>
@@ -186,8 +204,8 @@ export default function CounterPortal() {
                         <button
                             onClick={() => { setActiveTab('pending'); setSelectedOrder(null); }}
                             className={`flex-1 py-3 font-typewriter font-bold text-sm transition-colors ${activeTab === 'pending'
-                                    ? 'bg-orange-100 text-orange-700 border-b-2 border-orange-500'
-                                    : 'text-gray-500 hover:bg-gray-50'
+                                ? 'bg-orange-100 text-orange-700 border-b-2 border-orange-500'
+                                : 'text-gray-500 hover:bg-gray-50'
                                 }`}
                         >
                             🕐 Pending ({stats?.todayPending || 0})
@@ -195,8 +213,8 @@ export default function CounterPortal() {
                         <button
                             onClick={() => { setActiveTab('completed'); setSelectedOrder(null); }}
                             className={`flex-1 py-3 font-typewriter font-bold text-sm transition-colors ${activeTab === 'completed'
-                                    ? 'bg-green-100 text-green-700 border-b-2 border-green-500'
-                                    : 'text-gray-500 hover:bg-gray-50'
+                                ? 'bg-green-100 text-green-700 border-b-2 border-green-500'
+                                : 'text-gray-500 hover:bg-gray-50'
                                 }`}
                         >
                             ✅ Completed ({stats?.todayPaid || 0})
@@ -214,17 +232,11 @@ export default function CounterPortal() {
                                 onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
                                 className="flex-1 px-3 py-2 border-2 border-gray-300 rounded-lg font-typewriter text-sm focus:border-therapy-teal focus:outline-none"
                             />
-                            <button
-                                onClick={handleSearch}
-                                className="px-4 py-2 bg-therapy-teal text-white rounded-lg hover:bg-therapy-dark transition-colors"
-                            >
+                            <button onClick={handleSearch} className="px-4 py-2 bg-therapy-teal text-white rounded-lg hover:bg-therapy-dark">
                                 🔍
                             </button>
                             {search && (
-                                <button
-                                    onClick={clearSearch}
-                                    className="px-3 py-2 bg-gray-200 rounded-lg hover:bg-gray-300 transition-colors"
-                                >
+                                <button onClick={clearSearch} className="px-3 py-2 bg-gray-200 rounded-lg hover:bg-gray-300">
                                     ✕
                                 </button>
                             )}
@@ -234,22 +246,11 @@ export default function CounterPortal() {
                     {/* Order List */}
                     <div className="max-h-[calc(100vh-350px)] overflow-y-auto">
                         {loading ? (
-                            <div className="flex justify-center py-8">
-                                <div className="spinner" />
-                            </div>
+                            <div className="flex justify-center py-8"><div className="spinner" /></div>
                         ) : orders.length === 0 ? (
                             <div className="text-center py-8 text-gray-500">
-                                <span className="text-4xl block mb-2">
-                                    {activeTab === 'pending' ? '📭' : '📋'}
-                                </span>
-                                <p className="font-typewriter">
-                                    {activeTab === 'pending' ? 'No pending orders' : 'No completed orders today'}
-                                </p>
-                                {search && (
-                                    <button onClick={clearSearch} className="text-therapy-teal text-sm mt-2 hover:underline">
-                                        Clear search
-                                    </button>
-                                )}
+                                <span className="text-4xl block mb-2">{activeTab === 'pending' ? '📭' : '📋'}</span>
+                                <p className="font-typewriter">{activeTab === 'pending' ? 'No pending orders' : 'No completed orders today'}</p>
                             </div>
                         ) : (
                             orders.map((order) => {
@@ -258,10 +259,7 @@ export default function CounterPortal() {
                                     <div
                                         key={order._id}
                                         onClick={() => selectOrder(order._id)}
-                                        className={`p-4 border-b cursor-pointer hover:bg-gray-50 transition-colors ${selectedOrder?._id === order._id
-                                                ? 'bg-therapy-light border-l-4 border-l-therapy-teal'
-                                                : ''
-                                            }`}
+                                        className={`p-4 border-b cursor-pointer hover:bg-gray-50 transition-colors ${selectedOrder?._id === order._id ? 'bg-therapy-light border-l-4 border-l-therapy-teal' : ''}`}
                                     >
                                         <div className="flex justify-between items-start mb-1">
                                             <div>
@@ -270,9 +268,8 @@ export default function CounterPortal() {
                                             </div>
                                             <div className="text-right">
                                                 <span className="font-typewriter font-bold text-therapy-dark">₹{order.total}</span>
-                                                {order.isPaid && (
-                                                    <span className="block text-xs text-green-600">✓ Paid</span>
-                                                )}
+                                                {order.isPaid && <span className="block text-xs text-green-600">✓ Paid</span>}
+                                                {order.couponCode && <span className="block text-xs text-purple-600">🎫 {order.couponCode}</span>}
                                             </div>
                                         </div>
                                         <div className="flex justify-between items-center text-xs text-gray-500">
@@ -294,23 +291,13 @@ export default function CounterPortal() {
                             <div className={`p-4 ${selectedOrder.isPaid ? 'bg-green-500' : 'bg-therapy-teal'} text-white`}>
                                 <div className="flex justify-between items-start">
                                     <div>
-                                        <h2 className="text-xl font-typewriter font-bold">
-                                            {getCustomerInfo(selectedOrder).name}
-                                        </h2>
-                                        <p className="text-sm opacity-90">
-                                            📞 {getCustomerInfo(selectedOrder).phone} | Table: {selectedOrder.tableNumber || '-'}
-                                        </p>
-                                        {selectedOrder.isPaid && (
-                                            <p className="text-sm mt-1 opacity-90">
-                                                ✅ Paid at {formatTime(selectedOrder.paidAt)}
-                                            </p>
-                                        )}
+                                        <h2 className="text-xl font-typewriter font-bold">{getCustomerInfo(selectedOrder).name}</h2>
+                                        <p className="text-sm opacity-90">📞 {getCustomerInfo(selectedOrder).phone} | Table: {selectedOrder.tableNumber || '-'}</p>
+                                        {selectedOrder.isPaid && <p className="text-sm mt-1 opacity-90">✅ Paid at {formatTime(selectedOrder.paidAt)}</p>}
                                     </div>
                                     <div className="text-right">
                                         <p className="text-xs opacity-80">Order ID</p>
-                                        <code className="bg-white/20 px-2 py-1 rounded text-sm">
-                                            #{selectedOrder._id.slice(-6).toUpperCase()}
-                                        </code>
+                                        <code className="bg-white/20 px-2 py-1 rounded text-sm">#{selectedOrder._id.slice(-6).toUpperCase()}</code>
                                     </div>
                                 </div>
                             </div>
@@ -320,16 +307,13 @@ export default function CounterPortal() {
                                 <div className="flex justify-between items-center mb-3">
                                     <h3 className="font-typewriter font-bold">Order Items</h3>
                                     {!selectedOrder.isPaid && (
-                                        <button
-                                            onClick={() => setShowAddItem(true)}
-                                            className="px-3 py-1 bg-green-500 text-white rounded-lg text-sm hover:bg-green-600"
-                                        >
+                                        <button onClick={() => setShowAddItem(true)} className="px-3 py-1 bg-green-500 text-white rounded-lg text-sm hover:bg-green-600">
                                             + Add Item
                                         </button>
                                     )}
                                 </div>
 
-                                <div className="space-y-2 max-h-64 overflow-y-auto">
+                                <div className="space-y-2 max-h-48 overflow-y-auto">
                                     {selectedOrder.items.map((item, index) => (
                                         <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                                             <div className="flex-1">
@@ -338,28 +322,11 @@ export default function CounterPortal() {
                                             </div>
                                             {!selectedOrder.isPaid ? (
                                                 <div className="flex items-center gap-2">
-                                                    <button
-                                                        onClick={() => updateItemQuantity(index, item.quantity - 1)}
-                                                        className="w-8 h-8 bg-gray-200 rounded-full hover:bg-gray-300 font-bold"
-                                                    >
-                                                        -
-                                                    </button>
+                                                    <button onClick={() => updateItemQuantity(index, item.quantity - 1)} className="w-8 h-8 bg-gray-200 rounded-full hover:bg-gray-300 font-bold">-</button>
                                                     <span className="w-8 text-center font-typewriter">{item.quantity}</span>
-                                                    <button
-                                                        onClick={() => updateItemQuantity(index, item.quantity + 1)}
-                                                        className="w-8 h-8 bg-therapy-teal text-white rounded-full hover:bg-therapy-dark font-bold"
-                                                    >
-                                                        +
-                                                    </button>
-                                                    <span className="w-20 text-right font-typewriter font-bold">
-                                                        ₹{item.price * item.quantity}
-                                                    </span>
-                                                    <button
-                                                        onClick={() => removeItem(index)}
-                                                        className="ml-2 text-red-500 hover:text-red-700"
-                                                    >
-                                                        🗑️
-                                                    </button>
+                                                    <button onClick={() => updateItemQuantity(index, item.quantity + 1)} className="w-8 h-8 bg-therapy-teal text-white rounded-full hover:bg-therapy-dark font-bold">+</button>
+                                                    <span className="w-20 text-right font-typewriter font-bold">₹{item.price * item.quantity}</span>
+                                                    <button onClick={() => removeItem(index)} className="ml-2 text-red-500 hover:text-red-700">🗑️</button>
                                                 </div>
                                             ) : (
                                                 <div className="text-right">
@@ -370,6 +337,34 @@ export default function CounterPortal() {
                                         </div>
                                     ))}
                                 </div>
+
+                                {/* Coupon Section - Only for unpaid orders without coupon */}
+                                {!selectedOrder.isPaid && (
+                                    <div className="mt-4 p-3 bg-purple-50 rounded-lg border-2 border-dashed border-purple-200">
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-xl">🎫</span>
+                                                <span className="font-typewriter font-bold">Counter Discount</span>
+                                            </div>
+                                            {selectedOrder.couponCode ? (
+                                                <div className="flex items-center gap-2">
+                                                    <span className="px-2 py-1 bg-purple-100 text-purple-700 rounded font-bold text-sm">
+                                                        {selectedOrder.couponCode} (-₹{selectedOrder.discount})
+                                                    </span>
+                                                    <button onClick={removeCoupon} className="px-2 py-1 bg-red-100 text-red-600 rounded text-xs hover:bg-red-200">
+                                                        Remove
+                                                    </button>
+                                                </div>
+                                            ) : counterCoupons.length > 0 ? (
+                                                <button onClick={() => setShowCouponModal(true)} className="px-3 py-1 bg-purple-500 text-white rounded-lg text-sm hover:bg-purple-600">
+                                                    Apply Coupon
+                                                </button>
+                                            ) : (
+                                                <span className="text-sm text-gray-500">No counter coupons available</span>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
 
                                 {/* Totals */}
                                 <div className="mt-4 pt-4 border-t space-y-2 font-typewriter">
@@ -392,10 +387,7 @@ export default function CounterPortal() {
                                 {/* Actions */}
                                 <div className="mt-6 flex gap-3">
                                     {!selectedOrder.isPaid ? (
-                                        <button
-                                            onClick={markAsPaid}
-                                            className="flex-1 py-4 bg-green-500 text-white rounded-xl font-typewriter text-lg font-bold hover:bg-green-600 transition-colors"
-                                        >
+                                        <button onClick={markAsPaid} className="flex-1 py-4 bg-green-500 text-white rounded-xl font-typewriter text-lg font-bold hover:bg-green-600">
                                             💵 RECEIVE PAYMENT - ₹{selectedOrder.total}
                                         </button>
                                     ) : (
@@ -403,10 +395,7 @@ export default function CounterPortal() {
                                             ✅ PAID SUCCESSFULLY
                                         </div>
                                     )}
-                                    <button
-                                        onClick={() => setSelectedOrder(null)}
-                                        className="px-6 py-4 bg-gray-200 rounded-xl hover:bg-gray-300"
-                                    >
+                                    <button onClick={() => setSelectedOrder(null)} className="px-6 py-4 bg-gray-200 rounded-xl hover:bg-gray-300">
                                         ✕
                                     </button>
                                 </div>
@@ -414,14 +403,9 @@ export default function CounterPortal() {
                         </div>
                     ) : (
                         <div className="bg-white rounded-xl shadow-lg p-12 text-center">
-                            <span className="text-6xl block mb-4">
-                                {activeTab === 'pending' ? '👈' : '📋'}
-                            </span>
+                            <span className="text-6xl block mb-4">{activeTab === 'pending' ? '👈' : '📋'}</span>
                             <h2 className="text-xl font-typewriter text-gray-600">
-                                {activeTab === 'pending'
-                                    ? 'Select an order to view details'
-                                    : 'Select a completed order to view receipt'
-                                }
+                                {activeTab === 'pending' ? 'Select an order to view details' : 'Select a completed order to view receipt'}
                             </h2>
                             <p className="text-gray-400 mt-2">Click on any order from the list</p>
                         </div>
@@ -443,7 +427,7 @@ export default function CounterPortal() {
                                     <button
                                         key={item._id}
                                         onClick={() => addItemToOrder(item)}
-                                        className="p-3 border-2 rounded-lg text-left hover:border-therapy-teal hover:bg-therapy-light transition-colors"
+                                        className="p-3 border-2 rounded-lg text-left hover:border-therapy-teal hover:bg-therapy-light"
                                     >
                                         <div className="flex justify-between items-start">
                                             <div>
@@ -455,6 +439,52 @@ export default function CounterPortal() {
                                     </button>
                                 ))}
                             </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Apply Coupon Modal */}
+            {showCouponModal && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+                    <div className="bg-white rounded-xl max-w-md w-full overflow-hidden">
+                        <div className="p-4 bg-purple-500 text-white flex justify-between items-center">
+                            <h3 className="font-typewriter font-bold">🎫 Apply Counter Coupon</h3>
+                            <button onClick={() => setShowCouponModal(false)} className="text-2xl hover:opacity-80">&times;</button>
+                        </div>
+                        <div className="p-4 space-y-3">
+                            {counterCoupons.length === 0 ? (
+                                <p className="text-gray-500 text-center py-4">No counter coupons available</p>
+                            ) : (
+                                counterCoupons.map((coupon) => (
+                                    <button
+                                        key={coupon._id}
+                                        onClick={() => applyCoupon(coupon.code)}
+                                        className="w-full p-4 border-2 border-dashed border-purple-300 rounded-lg text-left hover:bg-purple-50 hover:border-purple-500 transition-colors"
+                                    >
+                                        <div className="flex justify-between items-start">
+                                            <div>
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-xl">{coupon.icon || '🎫'}</span>
+                                                    <span className="font-typewriter font-bold">{coupon.name}</span>
+                                                </div>
+                                                <p className="text-sm text-gray-600 mt-1">{coupon.description}</p>
+                                                <code className="inline-block mt-2 px-2 py-0.5 bg-purple-100 rounded text-xs font-bold text-purple-700">
+                                                    {coupon.code}
+                                                </code>
+                                            </div>
+                                            <div className="text-right">
+                                                <span className="font-typewriter font-bold text-purple-700">
+                                                    {coupon.type === 'percent' ? `${coupon.value}% OFF` : `₹${coupon.value} OFF`}
+                                                </span>
+                                                {coupon.minOrder > 0 && (
+                                                    <p className="text-xs text-gray-500">Min ₹{coupon.minOrder}</p>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </button>
+                                ))
+                            )}
                         </div>
                     </div>
                 </div>

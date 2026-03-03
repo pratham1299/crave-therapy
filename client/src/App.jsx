@@ -7,6 +7,7 @@ import MoodSelect from './pages/MoodSelect';
 import Menu from './pages/Menu';
 import Checkout from './pages/Checkout';
 import OrderSuccess from './pages/OrderSuccess';
+import OrderHistory from './pages/OrderHistory';
 import AdminDashboard from './pages/admin/Dashboard';
 import AdminMenu from './pages/admin/MenuManager';
 import AdminCoupons from './pages/admin/CouponManager';
@@ -27,6 +28,7 @@ function App() {
                             <Route path="/menu/:moodSlug" element={<Menu />} />
                             <Route path="/checkout" element={<Checkout />} />
                             <Route path="/order-success/:orderId" element={<OrderSuccess />} />
+                            <Route path="/my-orders" element={<OrderHistory />} />
 
                             {/* Admin Routes */}
                             <Route path="/admin" element={<AdminDashboard />} />

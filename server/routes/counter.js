@@ -1,6 +1,7 @@
 import express from 'express';
 import Order from '../models/Order.js';
 import MenuItem from '../models/MenuItem.js';
+import Coupon from '../models/Coupon.js';
 import { protect } from '../middleware/auth.js';
 
 const router = express.Router();
@@ -270,6 +271,127 @@ router.get('/stats', async (req, res) => {
                 todayRevenue: todayRevenue[0]?.total || 0
             }
         });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+// @route   GET /api/counter/coupons
+// @desc    Get counter-only coupons for staff to apply
+// @access  Staff/Admin
+router.get('/coupons', async (req, res) => {
+    try {
+        const coupons = await Coupon.find({
+            isActive: true,
+            isCounterOnly: true
+        }).sort('name');
+        res.json({ success: true, data: coupons });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+// @route   POST /api/counter/orders/:id/apply-coupon
+// @desc    Apply coupon to order (staff only)
+// @access  Staff/Admin
+router.post('/orders/:id/apply-coupon', async (req, res) => {
+    try {
+        const order = await Order.findById(req.params.id);
+
+        if (!order) {
+            return res.status(404).json({ success: false, message: 'Order not found' });
+        }
+
+        if (order.isPaid) {
+            return res.status(400).json({ success: false, message: 'Cannot modify a paid order' });
+        }
+
+        if (order.couponApplied) {
+            return res.status(400).json({ success: false, message: 'Order already has a coupon applied. Remove it first.' });
+        }
+
+        const { couponCode } = req.body;
+
+        // Find the coupon (counter-only coupons)
+        const coupon = await Coupon.findOne({
+            code: couponCode.toUpperCase(),
+            isActive: true,
+            isCounterOnly: true
+        });
+
+        if (!coupon) {
+            return res.status(404).json({ success: false, message: 'Counter coupon not found or not active' });
+        }
+
+        // Check minimum order
+        if (order.subtotal < coupon.minOrder) {
+            return res.status(400).json({
+                success: false,
+                message: `Minimum order of ₹${coupon.minOrder} required for this coupon`
+            });
+        }
+
+        // Calculate discount
+        let discount = 0;
+        if (coupon.type === 'percent') {
+            discount = (order.subtotal * coupon.value) / 100;
+            if (coupon.maxDiscount) {
+                discount = Math.min(discount, coupon.maxDiscount);
+            }
+        } else if (coupon.type === 'fixed') {
+            discount = coupon.value;
+        }
+
+        // Apply coupon
+        order.couponApplied = coupon._id;
+        order.couponCode = coupon.code;
+        order.discount = discount;
+        order.total = Math.max(0, order.subtotal - discount);
+
+        await order.save();
+        await Coupon.findByIdAndUpdate(coupon._id, { $inc: { usedCount: 1 } });
+
+        // Populate and return
+        const updatedOrder = await Order.findById(order._id)
+            .populate('couponApplied', 'code name value type icon');
+
+        res.json({
+            success: true,
+            data: updatedOrder,
+            message: `Coupon ${coupon.code} applied! ₹${discount} discount`
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+// @route   DELETE /api/counter/orders/:id/remove-coupon
+// @desc    Remove coupon from order
+// @access  Staff/Admin
+router.delete('/orders/:id/remove-coupon', async (req, res) => {
+    try {
+        const order = await Order.findById(req.params.id);
+
+        if (!order) {
+            return res.status(404).json({ success: false, message: 'Order not found' });
+        }
+
+        if (order.isPaid) {
+            return res.status(400).json({ success: false, message: 'Cannot modify a paid order' });
+        }
+
+        if (!order.couponApplied) {
+            return res.status(400).json({ success: false, message: 'No coupon applied to this order' });
+        }
+
+        // Remove coupon
+        order.couponApplied = null;
+        order.couponCode = null;
+        order.discount = 0;
+        order.total = order.subtotal;
+
+        await order.save();
+
+        res.json({ success: true, data: order, message: 'Coupon removed' });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
     }
