@@ -187,8 +187,8 @@ export default function Checkout() {
                                         <div
                                             key={coupon._id}
                                             className={`relative p-3 rounded-lg border-2 border-dashed transition-all ${couponApplied?._id === coupon._id
-                                                    ? 'border-green-500 bg-green-50'
-                                                    : 'border-therapy-teal hover:bg-therapy-light'
+                                                ? 'border-green-500 bg-green-50'
+                                                : 'border-therapy-teal hover:bg-therapy-light'
                                                 }`}
                                         >
                                             <div className="flex items-start justify-between gap-2">
