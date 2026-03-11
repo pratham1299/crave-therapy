@@ -41,7 +41,7 @@ export default function Landing() {
                 {/* Logo */}
                 <div className="mb-8">
                     <div className="inline-block relative">
-                        <img src="/logo.png" alt="Crave Therapy Logo" className="w-24 h-24 md:w-32 md:h-32 object-contain animate-heartbeat block mx-auto" />
+                        <img src="/logo.png" alt="Crave Therapy Logo" className="w-32 h-32 md:w-40 md:h-40 object-cover rounded-full border-4 border-therapy-teal shadow-lg animate-heartbeat block mx-auto bg-white" />
                         {/* Approved Stamp */}
                         <div className="absolute -right-8 -top-4 transform rotate-12">
                             <span className="stamp text-xs">APPROVED</span>

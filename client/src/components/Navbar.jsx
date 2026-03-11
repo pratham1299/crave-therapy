@@ -29,7 +29,7 @@ export default function Navbar() {
                         to={isAdmin ? '/admin' : (isStaff ? '/counter' : '/')}
                         className="flex items-center gap-2 group"
                     >
-                        <img src="/logo.png" alt="Crave Therapy" className="w-10 h-10 object-contain animate-pulse-slow" />
+                        <img src="/logo.png" alt="Crave Therapy" className="w-12 h-12 object-cover rounded-full border-2 border-white/30 shadow-sm animate-pulse-slow bg-white/10" />
                         <div>
                             <h1 className="text-white font-typewriter text-xl font-bold tracking-tight">
                                 Crave Therapy
