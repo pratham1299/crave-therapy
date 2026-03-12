@@ -9,7 +9,7 @@ export default function OrderSuccess() {
     const [showPaymentSlider, setShowPaymentSlider] = useState(false);
     const [copied, setCopied] = useState(false);
 
-    const SUPPORT_UPI_ID = 'cravetherapy@oksbi';
+    const SUPPORT_UPI_ID = 'cravetherapy@ybl';
 
     useEffect(() => {
         fetchOrder();
