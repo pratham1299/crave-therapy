@@ -3,12 +3,14 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import AuthModal from './AuthModal';
+import OrderSidebar from './OrderSidebar';
 
 export default function Navbar() {
     const { user, logout, isAdmin, isStaff } = useAuth();
     const { itemCount } = useCart();
     const [showAuth, setShowAuth] = useState(false);
     const [authMode, setAuthMode] = useState('login');
+    const [showOrderSidebar, setShowOrderSidebar] = useState(false);
 
     const openLogin = () => {
         setAuthMode('login');
@@ -69,12 +71,12 @@ export default function Navbar() {
                                 </span>
                                 {/* My Orders - only for regular users */}
                                 {!isStaff && (
-                                    <Link
-                                        to="/my-orders"
+                                    <button
+                                        onClick={() => setShowOrderSidebar(true)}
                                         className="px-3 py-1 bg-white/20 text-white rounded-full text-sm hover:bg-white/30 transition-colors"
                                     >
                                         📜 My Orders
-                                    </Link>
+                                    </button>
                                 )}
                                 {isStaff && (
                                     <Link
@@ -102,6 +104,12 @@ export default function Navbar() {
                         ) : (
                             <div className="flex items-center gap-2">
                                 <button
+                                    onClick={() => setShowOrderSidebar(true)}
+                                    className="hidden sm:block px-4 py-1.5 text-therapy-light border border-therapy-light hover:bg-white/10 rounded-full text-sm transition-colors"
+                                >
+                                    Track Order
+                                </button>
+                                <button
                                     onClick={openLogin}
                                     className="px-4 py-1.5 text-white hover:bg-white/20 rounded-full text-sm transition-colors"
                                 >
@@ -127,6 +135,12 @@ export default function Navbar() {
                     onSwitchMode={() => setAuthMode(authMode === 'login' ? 'register' : 'login')}
                 />
             )}
+
+            {/* Order Sidebar */}
+            <OrderSidebar 
+                isOpen={showOrderSidebar} 
+                onClose={() => setShowOrderSidebar(false)} 
+            />
         </>
     );
 }

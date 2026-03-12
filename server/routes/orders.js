@@ -79,6 +79,25 @@ router.get('/my-orders', protect, async (req, res) => {
     }
 });
 
+// @route   GET /api/orders/guest/:phone
+// @desc    Get guest orders by phone number
+// @access  Public
+router.get('/guest/:phone', async (req, res) => {
+    try {
+        // Query using the nested object field pattern
+        const orders = await Order.find({ 
+            user: null, 
+            'guestInfo.phone': req.params.phone 
+        })
+        .sort('-createdAt')
+        .populate('couponApplied');
+        
+        res.json({ success: true, data: orders });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
 // @route   GET /api/orders/:id
 // @desc    Get order by ID
 // @access  Public (for order tracking)
